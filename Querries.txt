@@ -1,0 +1,77 @@
+-- 1. List all building numbers that have penthouses.
+ 	
+SELECT DISTINCT building_no 
+FROM apartment 
+WHERE type = "penthouse";
+
+-- 2. List name and SSN of all leasing tenants who are living in building 1.
+
+SELECT DISTINCT p.fname, p.lname, t.SSN
+FROM person AS p, tenant AS t, rented_apartment as r
+WHERE p.phone = r.lease_tenant_phone AND r.building_no = 2 AND p.phone = t.person_phone;
+
+-- 3. List name of all leasing tenants and their dependants' names who are living in building 1.
+
+SELECT DISTINCT p.fname, p.lname
+FROM person AS p, tenant AS t, rented_apartment as r
+WHERE p.phone = r.lease_tenant_phone AND r.building_no = 1 AND p.phone = t.person_phone
+UNION
+SELECT  p.fname, p.lname
+FROM person AS p, tenant AS t, rented_apartment AS r, tenant AS t2
+WHERE t.person_phone = t2.depended_tenant_phone AND
+	t.person_phone = r.lease_tenant_phone AND 
+	r.building_no = 1 AND
+	p.phone = t2.person_phone;
+
+-- 4. List the annual income and building number of all buildings.
+
+SELECT  b.building_no, COALESCE(SUM(r.monthly_rate), 0) * 12 AS annual_income
+FROM building AS b LEFT JOIN rented_apartment AS r ON b.building_no = r.building_no
+GROUP BY b.building_no
+ORDER BY annual_income DESC;
+
+-- 5. List the building number of buildings that have not been rented.
+
+SELECT b.building_no AS building_not_rented
+FROM building AS b LEFT JOIN rented_apartment AS r ON b.building_no = r.building_no
+WHERE r.monthly_rate IS NULL;
+
+-- 6. List all Union students' name, their building and room number of whom are leasing. 
+-- (Assuming that Union students would register with their @union.edu email for discount)
+
+SELECT p.fname, p.lname, r.building_no, r.room_no
+FROM person AS p, rented_apartment AS r
+WHERE r.lease_tenant_phone = p.phone AND
+	p.email LIKE '%@union.edu';
+
+-- 7. List all vehicle's license plates that have been in the parking lot for more than 10 days,
+-- along with the number of days that they have spent in the parking lot, and the type of the vehicle.
+
+SELECT p.vehicle_license_plate, DATEDIFF(CURRENT_DATE(), p.in_date) + 1 AS days, p.type 
+FROM parking_slot as p
+WHERE DATEDIFF(CURRENT_DATE(), p.in_date) + 1 > 10;
+
+-- 8. List all services' name, bulding number, and type of subscribtion that are saubscribed by Shanon Workman.
+
+SELECT s.service_name, s.service_building_no, s.type
+FROM subscribed AS s, person AS p
+WHERE s.person_phone = p.phone AND
+	p.fname = "Shanon" AND
+	p.lname = "Workman"; 
+
+-- 9. Find the name and SSN of the first hired manager.
+
+SELECT e.fname, e.lname, e.ssn
+FROM employee AS e, manager AS m
+WHERE m.employee_ssn = e.ssn
+ORDER BY e.hire_date ASC
+LIMIT 1;
+
+-- 10. List information of all empty rooms, and their addresses.
+
+SELECT a.*, b.address
+FROM apartment AS a, building AS b
+WHERE a.building_no = b.building_no AND
+	(a.building_no, a.floor, a.room_no) NOT IN
+	(SELECT ra.building_no, ra.floor, ra.room_no
+	 FROM rented_apartment AS ra);
